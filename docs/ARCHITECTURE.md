@@ -1,15 +1,26 @@
 # Cascade Star architecture draft
 
-**Version:** 0.1 — proposed behavior for discussion and simulation.
+**Version:** 0.2 — proposed trust and routing architecture layered on DTN; for discussion and simulation.
+
+Begin with the [threat model](THREAT_MODEL.md). The [Mars autonomy policy](MARS_AUTONOMY.md) and [minimum network](MINIMUM_NETWORK.md) define the next design constraints.
+
+## Position in the DTN stack
+
+Cascade Star supplies identity, delegated authorization, local verification courts, and trust-aware route eligibility. BPv7 supplies bundle semantics and DTN implementations supply storage and forwarding. BPSec supplies security-block mechanisms, subject to a separately specified key-management and identity model.
+
+The cascade is a logical delegation hierarchy. Physical connectivity is an independent, time-varying graph; it need not be a tree, and messages need not follow certificate-parent paths. Neither a certificate parent nor an Earth root must be online for every delivery.
+
+Before implementation, define how certificate identities bind to BP endpoint identifiers, which bundle blocks BPSec protects, how the original application signature survives forwarding, and how policy decisions integrate with the selected router. Bundle lifetime and command expiration have distinct semantics; specify their interaction and BPv7 handling of uncertain time and bundle age.
 
 ## The central rule
 
 Trust branches outward, but authority remains bounded. A relay may transport a command without gaining permission to create that command, change it, or execute it.
 
-The cascade has two related structures:
+The architecture keeps three structures distinct:
 
 - A **trust hierarchy** records who authorized each node and what it may do.
 - A **contact graph** records which nodes can communicate, when, and at what capacity.
+- A **decision policy** defines what evidence and approvals authorize forwarding or execution. It is not inferred from either graph.
 
 A child keeps its certified identity even when it routes through a different branch. Losing contact with a parent does not automatically revoke the child.
 
@@ -23,11 +34,11 @@ A child keeps its certified identity even when it routes through a different bra
 | Relay | Check envelopes, apply forwarding policy, store bundles, and report receipt. |
 | Destination | Verify command authority and execution conditions; maintain durable replay protection. |
 
-A physical spacecraft may perform several roles. Its certificates must make those permissions explicit. The root private key is never distributed to relays.
+A physical spacecraft may perform several roles. Its certificates must make those permissions explicit. Root signing capability is never distributed to ordinary relays. A threshold root (for example 3-of-5) is a proposed governance and cryptographic choice, not an implemented feature. Mars holds separately delegated regional authority for scoped local administration.
 
-## Growing from 1 to 10 to 40
+## Delegating from 1 to 10 to 40
 
-The numbers describe expansion, not a security threshold. An initial issuer could authorize ten relays, and those relays could support forty children across their branches.
+The numbers describe logical delegation growth, not a security threshold, spacecraft count, or physical routing layout. An initial issuer could authorize ten delegated identities, which could collectively authorize forty children. These roles may be mapped to different mission deployments.
 
 Each child joins by generating a key pair, proving possession of its private key, and receiving a signed certificate. Enrollment requires an authorized provisioning process; discovering a radio signal is insufficient.
 
@@ -110,14 +121,16 @@ An initial simulator can explore a 2-of-3 approval policy from independently pro
 
 Define conflict handling and execution serialization separately. Full Byzantine agreement, if needed, requires a specific protocol and justified assumptions about membership, faults, and network availability. Descendants of one relay do not count as independent observations merely because they have different keys.
 
-## Routing and branch recovery
+## Trust-aware DTN routing and recovery
 
-Maintain a contact plan describing anticipated link windows, capacity, propagation delay, and uncertainty. Choose routes subject to message expiration, storage availability, traffic priority, and authorization constraints. Limit replication to avoid exhausting bandwidth and memory.
+A DTN routing implementation uses contact opportunities, capacity, propagation delay, and uncertainty to find feasible routes. Cascade Star supplies policy constraints or rankings based on authenticated identities, permitted roles, trust-update freshness, and qualified evidence. The policy interface is still to be specified.
 
-When a branch stops responding:
+Keep route feasibility separate from route authorization. A contact plan may be scheduled or learned; it is not derived from the trust hierarchy. Route selection is subject to bundle lifetime, command expiration, storage availability, and traffic priority. Limit replication to avoid exhausting bandwidth and memory.
+
+When a physical route becomes unavailable:
 
 1. Mark its contact as unavailable; do not infer malicious intent from silence.
-2. Try eligible cross-links and alternate contacts.
+2. Try eligible alternate contacts, including relays outside the certificate branch.
 3. Preserve the original message identifier and signature during retries.
 4. Store until an allowed deadline if no viable route exists.
 5. Report failure or expiration when a return route is available.
@@ -134,7 +147,9 @@ A compromised issuer can authorize malicious children within its scope before re
 
 ## Relation to existing work
 
-Evaluate existing Delay-Tolerant Networking mechanisms before inventing transport: Bundle Protocol Version 7 (RFC 9171) and Bundle Protocol Security (RFC 9172) are relevant starting points. Cascade Star's proposed contribution is how delegated trust, local verification courts, physical consistency checks, and branch routing fit together. This draft does not claim those individual mechanisms are new.
+Cascade Star is explicitly layered on Delay-Tolerant Networking. Start from [Bundle Protocol Version 7 (RFC 9171)](https://www.rfc-editor.org/rfc/rfc9171.html) and [Bundle Protocol Security (RFC 9172)](https://www.rfc-editor.org/rfc/rfc9172.html), and evaluate existing implementations and routing mechanisms. BPv7 and BPSec are not replaced by the cascade.
+
+The proposed contribution is the integration of delegated trust, local verification courts, optional physical consistency evidence, and routing policy over an independent contact graph. These standards do not establish Cascade Star's authorization or recovery guarantees, and this draft does not claim the individual mechanisms are new.
 
 ## Decisions still required
 
