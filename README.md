@@ -6,6 +6,12 @@
 
 **Status:** Concept proposal. No flight hardware, implemented protocol, or validated security guarantees are claimed.
 
+## Explore the project
+
+- **[Goals map](docs/GOALS.md)** — milestones and the evidence needed to advance.
+- **[Architecture draft](docs/ARCHITECTURE.md)** — message flow, local courts, delegation, and branch recovery.
+- **[Simulator plan](docs/SIMULATION_PLAN.md)** — the first ground experiment and how to measure its results.
+
 ## The idea
 
 Cascade Star grows outward from an Earth-origin root of trust through successive layers of relay nodes:
