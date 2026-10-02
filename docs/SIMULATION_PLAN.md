@@ -1,14 +1,20 @@
 # First simulator plan
 
-**Purpose:** Test the proposed architecture on the ground before selecting hardware or flight orbits.
+**Purpose:** Test Cascade Star's trust and routing policies over DTN on the ground before selecting hardware or flight orbits.
 
 This document specifies a future simulator. No implementation or passing results are claimed.
 
-## Start with the cascade
+## Threat-driven starting point
 
-Model one Earth trust anchor, ten first-layer relays, and forty child relays. Model the Earth command authority and Mars destination as separate logical endpoints. Report the distinction between logical roles and physical spacecraft counts.
+Use the [threat model](THREAT_MODEL.md) to set assertions first. Begin with the [five-endpoint minimum network](MINIMUM_NETWORK.md); evaluate ION or DTNME integration before choosing a stack. Model scoped [Mars autonomy](MARS_AUTONOMY.md), including local renewal and revocation through a multi-week Earth blackout. Test root recovery with a compromised old root and an independent pinned recovery authority. No DTN stack has been selected or integrated.
 
-Give each child a parent certificate relationship. Add scheduled cross-links between branches. These synthetic contacts test protocol behavior; they do not establish that a real constellation could maintain those links.
+## Later delegation-scale fixture
+
+After the minimum demonstration, a separate scaling experiment may model an Earth trust anchor, ten first-layer delegated identities, and forty child identities. Model the Earth command authority and Mars destination as separate logical endpoints. These counts describe logical delegation, not spacecraft or link requirements.
+
+Build the certificate hierarchy and time-varying DTN contact graph independently. A node may forward through a peer outside its certificate branch. Include multiple non-tree contact layouts and a case where a certificate parent is unreachable but a valid route still exists.
+
+Synthetic contacts test policy behavior; they do not establish that a real constellation could maintain those links. A graph simulator is not a BPv7 implementation. Either integrate a chosen DTN stack or explicitly document which BPv7/BPSec semantics the model approximates and which are unimplemented.
 
 ## Simulation engine
 
@@ -34,7 +40,9 @@ Use a standard cryptographic library for signatures; do not substitute ordinary 
 | Scenario | What it tests | Expected behavior |
 | --- | --- | --- |
 | Healthy cascade | Baseline forwarding | Valid command reaches Mars and a signed result returns. |
-| Broken branch with cross-link | Route recovery | Eligible traffic uses the alternate path. |
+| Broken physical route | Route recovery | Eligible traffic uses an alternate DTN path, independent of certificate ancestry. |
+| Unreachable certificate parent | Trust/contact separation | A cached valid certificate chain permits eligible traffic over an unrelated route. |
+| Reachable unauthorized peer | Route eligibility | Physical reachability alone does not permit a prohibited route or action. |
 | Partition with later contact | Store-and-forward | Unexpired queued messages resume delivery within resource limits. |
 | Modified payload | Signature integrity | Destination rejects the altered command. |
 | Replay and retransmission | Duplicate handling | Retries do not repeat a completed action. |
@@ -49,13 +57,15 @@ Use a standard cryptographic library for signatures; do not substitute ordinary 
 
 For each scenario, define deterministic inputs and exact assertions before running it. Do not present simulated resistance as a flight security guarantee.
 
-## Compare three architectures
+## Compare policies on the same DTN network
 
-1. Direct Earth–Mars communication with a defined contact schedule.
-2. A branching relay tree with no cross-links.
-3. Cascade Star with branching and cross-links.
+1. Baseline DTN routing with defined end-to-end authentication and resource limits.
+2. DTN routing with Cascade Star's identity and authorization constraints.
+3. The same constraints plus optional physical consistency evidence.
 
-Hold message workloads, total equipment resources, fault assumptions, and contact opportunities comparable, or explicitly report the differences. Additional relays consume power, capacity, and cost; they are not free redundancy.
+Hold topology, contact schedule, workloads, cryptographic baseline, equipment resources, and fault assumptions constant to isolate policy effects. Report availability costs from stricter policy as well as security benefits.
+
+Separately compare physical mission layouts, including direct Earth–Mars links and relay configurations. Label those as topology studies; extra connectivity is not evidence of a benefit from the trust architecture itself.
 
 ## Reported metrics
 
@@ -73,7 +83,7 @@ Separate command acceptance, actual execution, and receipt of execution confirma
 ## Deliverables
 
 1. A versioned message and certificate specification.
-2. A repeatable small simulator with scenario fixtures.
+2. A repeatable DTN model or integrated stack with independent trust and contact graphs, scenario fixtures, and a documented standards-coverage boundary.
 3. Automated checks for authorization, replay behavior, recovery, and resource bounds.
 4. A comparison report, including failures and cases where relays provide no benefit.
 5. A second-stage plan using ephemerides, realistic link budgets, pointing limits, occultations, and conjunction effects.
